@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the accompanying paper."
+title: "Simulation code: Geometry, Thresholds, and Control of Cascading Failures in Tiered Pharmaceutical Supply Networks"
+authors:
+  - family-names: Kumar
+    given-names: Om
+  - family-names: Salwekar
+    given-names: Ishaan
+year: 2026
+license: MIT
