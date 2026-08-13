@@ -1,0 +1,8 @@
+aggregator,mean_failures,sd_failures,mean_spread_pct,tier1_crossings,tier2_crossings,tier3_crossings,tier4_crossings
+leontief,285.2,151.5,54.63,3.50,9.20,29.73,37.33
+ces rho=-10,1147.2,1144.2,47.88,3.50,9.50,26.40,30.50
+ces rho=-2,62.6,30.1,4.89,3.50,2.77,0.80,0.07
+ces rho=-0.5,57.9,27.0,2.99,3.50,0.80,0.07,0.00
+ces rho=0.01,57.7,26.9,2.83,3.50,0.57,0.07,0.00
+ces rho=0.5,57.7,26.9,2.83,3.50,0.57,0.07,0.00
+ces rho=1,57.6,26.8,2.81,3.50,0.53,0.07,0.00

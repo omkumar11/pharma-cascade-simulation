@@ -18,8 +18,9 @@ must be reflected in the revised paper text:
   M2. CES variant: I_j = (sum_i w_ij x_i^rho)^(1/rho), rho in (-inf,1]\{0}.
   M3. Shock protocol: at t=0, a uniformly random 25% of tier-1 nodes
       are disrupted; each disrupted node's capacity reduction eps_j is
-      drawn U(0.6, 0.9) per run, matching the 60-90% disruption profile
-      of Kim et al. (2022) cited in Section 1.4. (A scalar eps override
+      drawn U(0.6, 0.9) per run, spanning severe partial disruptions up
+      to near-complete facility loss (cf. Tucker & Daskin 2022, whose
+      reliability model treats a disrupted facility as fully unavailable). (A scalar eps override
       is retained for controlled threshold experiments.)
       Each shocked node recovers independently with probability
       p_rec = 0.06 per period (geometric duration, mean ~17 periods,
@@ -39,7 +40,7 @@ import numpy as np
 TIER_SIZES = (20, 35, 50, 41)
 DEFAULTS = dict(T=50, L=2, delta=0.2, lam=2.0, alpha=1.2, tau=0.3,
                 xbar=1.0, h0=0.1, eps=None, eps_range=(0.6, 0.9),
-                recover_p=0.06, shock_frac=0.25)
+                recover_p=0.06, shock_frac=0.25, hcap=np.inf)
 
 
 def build_network(seed=42, tier_sizes=TIER_SIZES, p=0.15):
@@ -67,7 +68,11 @@ def build_network(seed=42, tier_sizes=TIER_SIZES, p=0.15):
 
 
 def simulate(A, suppliers, tier, *, run_seed=0, agg="leontief", rho=None,
-             u=None, collect_x=False, **kw):
+             u=None, collect_x=False, h_stats=None, **kw):
+    # hcap (kw, default inf): storage cap \bar h on inventory (Sec 2 revision).
+    # h_stats: optional dict, filled with max_h (peak inventory over the run)
+    # and cap_bound (True if the cap was ever binding). Default behavior and
+    # returns are byte-identical to the archived release.
     p = {**DEFAULTS, **kw}
     T, L = p["T"], p["L"]
     rng = np.random.default_rng(run_seed)
@@ -114,14 +119,18 @@ def simulate(A, suppliers, tier, *, run_seed=0, agg="leontief", rho=None,
             xt = min(p["xbar"], p["alpha"] * (I + h[j]))
             damp = max(0.0, 1.0 - p["delta"] * f[S].sum())
             xn[j] = xt * damp
-            hn[j] = max(0.0, h[j] + I - xn[j])
+            hn[j] = min(p["hcap"], max(0.0, h[j] + I - xn[j]))
         for j in range(n):
             S = suppliers[j]
             if len(S):
                 e = np.exp(-p["lam"] * f[S]); w[j] = e / e.sum()
         h = hn
+        if h_stats is not None:
+            h_stats["max_h"] = max(h_stats.get("max_h", 0.0), float(h.max()))
         hist = np.vstack([xn, hist[:-1]])
         F[t + 1] = xn < p["tau"]; X[t + 1] = xn
+    if h_stats is not None:
+        h_stats["cap_bound"] = h_stats.get("max_h", 0.0) >= p["hcap"] - 1e-9
     return (F, X) if collect_x else F
 
 
