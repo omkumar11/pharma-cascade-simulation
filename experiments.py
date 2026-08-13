@@ -18,12 +18,17 @@ out["baseline"] = {k: (float(np.mean([m[k] for m in ms])), float(np.std([m[k] fo
 np.save("F_baseline_runs.npy", np.array(Fs, dtype=bool))
 
 # ---------- E1: threshold sweeps ----------
+# Controlled sweeps hold the shock magnitude fixed at eps=0.8 (a
+# supra-threshold shock) so that delta/alpha/seed-size effects are not
+# confounded by the stochastic eps draw, under which ~1/3 of disrupted
+# nodes never cross the viability threshold.
+EPS_CTRL = 0.8
 E1 = {"delta": {}, "alpha": {}}
 for d in (0.0,0.05,0.10,0.15,0.20,0.30,0.40,0.50):
-    r=[metrics(simulate(A,sup,tier,delta=d,run_seed=s))["spread"] for s in range(30)]
+    r=[metrics(simulate(A,sup,tier,delta=d,run_seed=s,eps=EPS_CTRL))["spread"] for s in range(30)]
     E1["delta"][d]=(float(np.mean(r)),float(np.std(r)))
 for a in (1.05,1.1,1.2,1.35,1.5):
-    r=[metrics(simulate(A,sup,tier,alpha=a,run_seed=s))["spread"] for s in range(30)]
+    r=[metrics(simulate(A,sup,tier,alpha=a,run_seed=s,eps=EPS_CTRL))["spread"] for s in range(30)]
     E1["alpha"][a]=(float(np.mean(r)),float(np.std(r)))
 out["E1_threshold"]=E1
 E1b={"eps":{}, "h0":{}}
@@ -39,7 +44,7 @@ for e in (0.70,0.705,0.71,0.72,0.75):
     r=[metrics(simulate(A,sup,tier,eps=e,run_seed=s))["spread"] for s in range(30)]
     fine[e]=(float(np.mean(r)),float(np.std(r)))
 for sf in (0.05,0.10,0.25):
-    r=[metrics(simulate(A,sup,tier,shock_frac=sf,run_seed=s))["spread"] for s in range(30)]
+    r=[metrics(simulate(A,sup,tier,shock_frac=sf,run_seed=s,eps=EPS_CTRL))["spread"] for s in range(30)]
     seed_sz[sf]=(float(np.mean(r)),float(np.std(r)))
 out["E1c_fine"]={"eps_fine":fine,"seed_size":seed_sz}
 
