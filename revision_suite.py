@@ -218,8 +218,12 @@ def b4_rho(sup, tier, seeds):
 
 
 def b5_tau_alpha(sup, tier, seeds):
-    print("=" * 72); print("B5: tau and alpha robustness, corrected model")
-    res = {"tau": {}, "alpha": {}}
+    print("=" * 72); print("B5: tau, alpha, and delta sweeps, corrected model")
+    res = {"tau": {}, "alpha": {}, "delta": {}}
+    for dl in (0.0, 0.1, 0.2, 0.3, 0.4):
+        r = run_metrics(sup, tier, seeds, delta=dl)
+        res["delta"][dl] = {"total": summarize(r["total"])}
+        print(f"  delta={dl:4g}: total {res['delta'][dl]['total'][0]:8.1f}")
     for tau in (0.2, 0.25, 0.3, 0.35, 0.4, 0.5):
         r = run_metrics(sup, tier, seeds, tau=tau)
         res["tau"][tau] = {"total": summarize(r["total"]),
