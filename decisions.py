@@ -33,7 +33,11 @@ EPSR = (0.6, 0.9)
 def simulate_v(suppliers, tier, *, run_seed=0, agg="reqmin", rho=-10.0,
                damping="binary", lam=2.0, L=2, delta=DELTA, alpha=ALPHA,
                tau=TAU, h0=H0, eps=None, shock_frac=0.25, T=50, u=None,
-               collect_w=False):
+               collect_w=False, sourcing="indicator", kappa=0.02):
+    """sourcing: "indicator" (baseline; weights respond to f_i = 1{x_i < tau})
+    or "logistic" (smooth surrogate; weights respond to
+    s_kappa(x_i) = 1/(1+exp((x_i - tau)/kappa)), which -> f_i as kappa -> 0).
+    Default behavior is byte-identical to the archived release."""
     rng = np.random.default_rng(run_seed)
     n = len(tier)
     t1 = np.nonzero(tier == 0)[0]
@@ -92,7 +96,13 @@ def simulate_v(suppliers, tier, *, run_seed=0, agg="reqmin", rho=-10.0,
         for j in range(n):
             S = suppliers[j]
             if len(S):
-                e = np.exp(-lam * f[S]); w[j] = e / e.sum()
+                if sourcing == "logistic":
+                    sig = 1.0 / (1.0 + np.exp(np.clip((X[t][S] - tau) / kappa,
+                                                      -500, 500)))
+                    e = np.exp(-lam * sig)
+                else:
+                    e = np.exp(-lam * f[S])
+                w[j] = e / e.sum()
                 if collect_w:
                     Wsum[S] += w[j]
         if collect_w:
@@ -206,13 +216,14 @@ def d3_fine_grid(n_runs=100):
     return {"lams": lams, "failures": means, "hhi": hh}
 
 
-def d4_smooth_damping(n_runs=30):
+def d4_smooth_damping(n_runs=30, L=3):
     print("=" * 72)
-    print("D4: binary vs smooth damping, epsilon sweep through tau threshold")
+    print("D4: binary vs smooth damping, epsilon sweep through tau threshold "
+          f"(L={L}, the corrected-model baseline delay)")
     print("=" * 72)
     from model import build_network
     A, sup, tier, _ = build_network()
-    epss = [0.65, 0.70, 0.705, 0.71, 0.72, 0.75, 0.80]
+    epss = [0.65, 0.70, 0.705, 0.71, 0.72, 0.75, 0.80, 0.85, 0.90]
     out = {}
     for agg, rho, aggname in (("reqmin", None, "reqmin"), ("ces", -10.0, "ces-10")):
         for damping in ("binary", "smooth"):
@@ -221,14 +232,14 @@ def d4_smooth_damping(n_runs=30):
             for e in epss:
                 r = [100.0 * simulate_v(sup, tier, run_seed=s, agg=agg,
                                         rho=(rho or -10.0), damping=damping,
-                                        eps=e)["F"].any(0).sum() / len(tier)
+                                        eps=e, L=L)["F"].any(0).sum() / len(tier)
                      for s in range(n_runs)]
                 sp.append(float(np.mean(r)))
             out[key] = sp
             print(f"  [{key:>15}] " + " ".join(f"e{e:g}:{v:5.1f}" for e, v
                                                in zip(epss, sp)))
     print("  (jump at 0.705 under binary vs continuous rise under smooth?)")
-    return {"epss": epss, "spread": out}
+    return {"epss": epss, "spread": out, "L": L}
 
 
 def d5_regression(n_runs=30):

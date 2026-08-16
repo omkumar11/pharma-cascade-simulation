@@ -27,12 +27,15 @@ def fig1_transition():
         ax.plot(epss, d["spread"][key], style, color=c, label=lab, ms=4,
                 lw=1.4, alpha=0.9 if "smooth" in key else 0.55)
     ax.axvline(0.70, color="gray", lw=0.8, ls=":")
-    ax.annotate(r"seeding threshold $\epsilon=1-\tau$", (0.701, 60),
-                fontsize=8, color="gray")
+    ax.axvline(0.82, color="gray", lw=0.8, ls="-.")
+    ax.annotate(r"seeding threshold $1-\tau$", (0.697, 8), fontsize=7.5,
+                color="gray", ha="right", rotation=90, va="bottom")
+    ax.annotate(r"tier-2 threshold $\epsilon_2$", (0.823, 8), fontsize=7.5,
+                color="gray", ha="left", rotation=90, va="bottom")
     ax.set_xlabel(r"shock magnitude $\epsilon$")
     ax.set_ylabel("cascade spread (% of nodes)")
-    ax.set_title("Discontinuous coupling manufactures the all-or-nothing jump")
-    ax.legend(fontsize=7.5, frameon=False)
+    ax.set_title("Spread versus shock depth, four coupling specifications")
+    ax.legend(fontsize=7, frameon=False, loc="upper left")
     fig.savefig("fig1_transition.pdf"); plt.close(fig)
 
 
@@ -59,8 +62,9 @@ def fig2_delay():
     axes[2].plot(Ls, np.polyval(co, Ls), "--", color="k", lw=0.9,
                  label=f"linear fit: {co[0]:.1f} periods / unit $L$")
     axes[2].set_xlabel(r"$L$"); axes[2].set_ylabel("recovery time (periods)")
-    axes[2].set_title("Delay stretches the transient")
+    axes[2].set_title("Recovery time (T = 200)")
     axes[2].legend(fontsize=7.5, frameon=False)
+    fig.tight_layout(w_pad=1.5)
     fig.savefig("fig2_delay.pdf"); plt.close(fig)
 
 
@@ -78,11 +82,12 @@ def fig3_lambda():
     lo = [b3[key(g)]["total"][2] for g in lams]
     hi = [b3[key(g)]["total"][3] for g in lams]
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(8.4, 3.2))
+    fig.subplots_adjust(wspace=0.3)
     ax.plot(lams, mu, "-o", color=C2, ms=4)
     ax.fill_between(lams, lo, hi, color=C2, alpha=0.2, lw=0)
     ax.set_xlabel(r"sourcing sensitivity $\lambda$")
     ax.set_ylabel("total node-period failures")
-    ax.set_title("Corrected model: monotone benefit (95% CI)")
+    ax.set_title("Continuous-coupling baseline (95% CI)")
     d3 = DEC["d3"]
     ax2.plot(d3["lams"], d3["failures"], "-o", color=C1, ms=4)
     ax2.axvline(2.0, color="gray", lw=0.8, ls=":")
@@ -105,7 +110,8 @@ def fig4_targeting():
             b1[k]["total"][3] - b1[k]["total"][0]) if len(b1[k]["total"]) > 2
            else (0, 0) for k in order]
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(9.0, 3.2),
-                                  gridspec_kw={"width_ratios": [1.5, 1]})
+                                  gridspec_kw={"width_ratios": [1.5, 1],
+                                               "wspace": 0.3})
     ypos = np.arange(len(order))
     cols = [C1 if k in ("C_targeted",) else (C3 if k == "greedy" else C2)
             for k in order]
@@ -119,7 +125,7 @@ def fig4_targeting():
     for nm, c in (("C", C1), ("tier1", C4), ("uniform", C2)):
         ax2.plot(Bs, [b9[str(int(b)) if str(int(b)) in b9 else str(b)][nm]
                       for b in Bs], "-o", ms=3.5, color=c,
-                 label={"C": "C(j)", "tier1": "tier-1 uniform",
+                 label={"C": r"$\chi(j)$", "tier1": "tier-1 uniform",
                         "uniform": "uniform"}[nm])
     ax2.set_xscale("log", base=2)
     ax2.set_xlabel("budget B"); ax2.set_ylabel("failure reduction (%)")
@@ -139,8 +145,9 @@ def fig5_dynamics():
     ft = np.array([simulate_v(sup, tier, run_seed=s, u=u, **BASE)["F"].sum(1)
                    for s in range(30)])
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(8.4, 3.0))
+    fig.subplots_adjust(wspace=0.3)
     t = np.arange(fb.shape[1])
-    for arr, c, lab in ((fb, C2, "baseline"), (ft, C1, "C(j)-targeted")):
+    for arr, c, lab in ((fb, C2, "baseline"), (ft, C1, r"$\chi(j)$-targeted")):
         mu = arr.mean(0); se = arr.std(0, ddof=1) / np.sqrt(arr.shape[0])
         ax.plot(t, mu, color=c, label=lab, lw=1.4)
         ax.fill_between(t, mu - 1.96 * se, mu + 1.96 * se, color=c, alpha=0.2, lw=0)
@@ -150,7 +157,7 @@ def fig5_dynamics():
     rec_t = [int(np.nonzero(r)[0].max()) if r.any() else 0 for r in ft > 0]
     ax2.boxplot([rec_b, rec_t], tick_labels=["baseline", "targeted"], widths=0.5)
     ax2.set_ylabel("recovery time (periods)")
-    ax2.set_title("Recovery time (own axis)")
+    ax2.set_title("Recovery time (T = 50, censored at 50)")
     fig.savefig("fig5_dynamics.pdf"); plt.close(fig)
 
 
@@ -159,7 +166,7 @@ def fig6_quasi():
     fig, ax = plt.subplots(figsize=(4.2, 3.0))
     ax.plot(b6["quasi_grid"], b6["quasi_payoff"], "-o", color=C2, ms=3.5)
     ax.set_xlabel(r"own investment $u_j$ (tier-1 firm)")
-    ax.set_ylabel("private payoff (failure cost + invest cost)")
+    ax.set_ylabel(r"private payoff $-(\psi\,\mathbb{E}\sum_t f_j + c(u_j))$")
     ax.set_title("Numerical check of payoff unimodality")
     fig.savefig("fig6_quasi.pdf"); plt.close(fig)
 

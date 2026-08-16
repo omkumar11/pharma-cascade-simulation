@@ -1,1 +1,22 @@
-{"title": "Simulation code: Geometry, Thresholds, and Control of Cascading Failures in Tiered Pharmaceutical Supply Networks", "upload_type": "software", "creators": [{"name": "Kumar, Om"}, {"name": "Salwekar, Ishaan"}], "license": "MIT", "keywords": ["supply chains", "cascading failures", "network dynamics", "resilience", "pharmaceutical"]}
+{
+ "title": "Simulation code: Cascade Seeding, Delay Timescales, and Coupling Artifacts in Tiered Pharmaceutical Supply Networks",
+ "upload_type": "software",
+ "creators": [
+  {
+   "name": "Kumar, Om"
+  },
+  {
+   "name": "Salwekar, Ishaan"
+  }
+ ],
+ "license": "MIT",
+ "keywords": [
+  "supply chains",
+  "cascading failures",
+  "threshold dynamics",
+  "time delay",
+  "production networks",
+  "drug shortages"
+ ],
+ "version": "2.1"
+}

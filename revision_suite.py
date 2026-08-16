@@ -562,9 +562,65 @@ def b12_cisplatin(sup, tier):
             "duration_median": float(np.median(dur))}
 
 
+def b13_smooth_sourcing(A, sup, tier, seeds):
+    """Smooth-coupling limit applied to the one retained indicator: the
+    sourcing rule. Replace f_i by the logistic surrogate s_kappa(x_i) and
+    check that the headline orderings (monotone lambda benefit, tier-1 >
+    chi > uniform, seeding-gated continuous transition) survive."""
+    print("=" * 72); print("B13: smooth-sourcing robustness (logistic surrogate)")
+    cent = centralities(A)
+    n = len(tier); t1 = tier == 0
+    res = {}
+    for kappa in (0.02, 0.05):
+        r = {"lambda": {}, "targeting": {}, "transition": {}}
+        cfg = {**BASE, "sourcing": "logistic", "kappa": kappa}
+        # lambda sweep
+        means = []
+        for lam in (0., 1., 2., 3., 5.):
+            tot = [total(simulate_v(sup, tier, run_seed=s, **{**cfg, "lam": lam})["F"])
+                   for s in seeds]
+            r["lambda"][lam] = summarize(tot); means.append(np.mean(tot))
+        r["lambda_monotone"] = bool(all(means[i+1] <= means[i] + 1e-9
+                                        for i in range(len(means)-1)))
+        # targeting at B=4
+        for name, u in (("baseline", None), ("uniform", np.full(n, BUDGET / n)),
+                        ("C_targeted", alloc_from_score(cent["C"])),
+                        ("tier1_uniform", np.where(t1, BUDGET / t1.sum(), 0.0))):
+            tot = [total(simulate_v(sup, tier, run_seed=s, u=u, **cfg)["F"])
+                   for s in seeds]
+            r["targeting"][name] = summarize(tot)
+        # transition (controlled scalar shock, 30 runs)
+        for e in (0.65, 0.70, 0.705, 0.72, 0.75, 0.80, 0.85, 0.90):
+            sp = [spread(simulate_v(sup, tier, run_seed=s, eps=e, **cfg)["F"])
+                  for s in range(30)]
+            r["transition"][e] = float(np.mean(sp))
+        res[kappa] = r
+        print(f"  kappa={kappa}: lambda totals " +
+              " ".join(f"l{l:g}:{v[0]:.0f}" for l, v in r["lambda"].items()) +
+              f" monotone={r['lambda_monotone']}")
+        print(f"  kappa={kappa}: targeting " +
+              " ".join(f"{k}:{v[0]:.1f}" for k, v in r["targeting"].items()))
+        print(f"  kappa={kappa}: transition " +
+              " ".join(f"e{e:g}:{v:.1f}" for e, v in r["transition"].items()))
+    return res
+
+
 if __name__ == "__main__":
+    import sys
     A, sup, tier, ranks = build_network()
     seeds = list(range(NRUNS))
+    if len(sys.argv) > 1 and sys.argv[1] == "--only-b13":
+        # incremental: run B13 and merge into the existing results_v2.json
+        prev = json.load(open("results_v2.json"))
+        r13 = b13_smooth_sourcing(A, sup, tier, seeds)
+        def clean(o):
+            if isinstance(o, dict): return {str(k): clean(v) for k, v in o.items()}
+            if isinstance(o, (list, tuple)): return [clean(v) for v in o]
+            if isinstance(o, (np.floating, np.integer)): return float(o)
+            return o
+        prev["b13"] = clean(r13)
+        json.dump(prev, open("results_v2.json", "w"), indent=1)
+        print("\nmerged b13 into results_v2.json"); sys.exit(0)
     out = {}
     out["b1"], raw1 = b1_targeting(A, sup, tier, seeds)
     out["b2"] = b2_delay(sup, tier, seeds)
@@ -578,6 +634,7 @@ if __name__ == "__main__":
     out["b10"] = b10_size()
     out["b11"] = b11_regression(sup, tier, A, ranks)
     out["b12"] = b12_cisplatin(sup, tier)
+    out["b13"] = b13_smooth_sourcing(A, sup, tier, seeds)
     def clean(o):
         if isinstance(o, dict): return {str(k): clean(v) for k, v in o.items()}
         if isinstance(o, (list, tuple)): return [clean(v) for v in o]

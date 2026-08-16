@@ -1,11 +1,14 @@
 """
-model.py — Canonical simulation for Kumar & Salwekar,
-"Geometry, Thresholds, and Control of Cascading Failures in Tiered
-Pharmaceutical Supply Networks" (revised).
+model.py — network construction, the ORIGINAL (v1, indicator-coupled)
+simulator, metrics, and the discounted-reachability centrality chi(j) for
+Kumar & Salwekar, "Cascade Seeding, Delay Timescales, and Coupling
+Artifacts in Tiered Pharmaceutical Supply Networks".
 
-This module REPLACES the lost original implementation. All Section 6
-results are regenerated from this code. Design decisions, all of which
-must be reflected in the revised paper text:
+NOTE (v2): the corrected model used for every result in the current
+manuscript lives in decisions.simulate_v (agg="ces", rho=-10,
+damping="smooth", L=3); this module's simulate() is the v1
+requirements-form / indicator-damping variant analysed in Section 4 of the
+paper. Design decisions of the v1 implementation (kept for the record):
 
   M1. Input aggregation (baseline "Leontief"): requirements form
           I_j = min_i x_i / (w_ij * m_j),  m_j = |N-(j)|,
@@ -142,7 +145,9 @@ def metrics(F):
 
 
 def centrality(A, eta=0.5):
-    """Downstream influence C(j) = sum_k eta^d(j,k), omega=1 (Def 3.13)."""
+    """Discounted-reachability score chi(j) = sum_k eta^d(j,k) omega_k with
+    omega=1 (paper Section 5.3). NOTE: eta is fixed at 0.5 here; the
+    eta-robustness check in revision_suite.b9_eta_budget recomputes it."""
     from collections import deque
     n = A.shape[0]
     C = np.zeros(n)
