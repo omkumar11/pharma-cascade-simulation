@@ -1,7 +1,7 @@
 """
-figures_v2.py — regenerate all manuscript figures from results_decisions.json
-and results_v2.json (corrected model). Run after decisions.py and
-revision_suite.py.
+figures_v2.py — regenerate all manuscript figures from results_decisions.json,
+results_v2.json, results_qa.json and results_game.json (corrected model).
+Run after decisions.py, revision_suite.py, qa_robustness.py and game_exact.py.
 """
 import json
 import numpy as np
@@ -10,7 +10,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 plt.rcParams.update({"font.size": 9, "axes.titlesize": 10, "axes.labelsize": 9,
-                     "figure.dpi": 150, "savefig.bbox": "tight"})
+                     "figure.dpi": 150, "savefig.bbox": "tight",
+                     # embed text as TrueType (Type 42), not Type 3: IEEE PDF checks reject Type 3 fonts
+                     "pdf.fonttype": 42, "ps.fonttype": 42})
 DEC = json.load(open("results_decisions.json"))
 V2 = json.load(open("results_v2.json"))
 try:                       # v2.2 additions (qa_robustness.py); optional
@@ -173,12 +175,70 @@ def fig5_dynamics():
 
 
 def fig6_quasi():
-    b6 = V2["b6"]
-    fig, ax = plt.subplots(figsize=(4.2, 3.0))
-    ax.plot(b6["quasi_grid"], b6["quasi_payoff"], "-o", color=C2, ms=3.5)
-    ax.set_xlabel(r"own investment $u_j$ (tier-1 firm)")
+    """v2.3: three panels from results_game.json (game_exact.py); falls back
+    to the v2.x single-panel Monte Carlo check if that file is absent."""
+    try:
+        G = json.load(open("results_game.json"))
+    except FileNotFoundError:
+        b6 = V2["b6"]
+        fig, ax = plt.subplots(figsize=(4.2, 3.0))
+        ax.plot(b6["quasi_grid"], b6["quasi_payoff"], "-o", color=C2, ms=3.5)
+        ax.set_xlabel(r"own investment $u_j$ (tier-1 firm)")
+        ax.set_ylabel(r"private payoff $-(\psi\,\mathbb{E}\sum_t f_j + c(u_j))$")
+        ax.set_title("Numerical check of payoff unimodality")
+        fig.savefig("fig6_quasi.pdf"); plt.close(fig)
+        return
+    c = G["constants"]; q6c, q6e = G["q6c"], G["q6e"]
+    u_priv = G["q6a"]["u_priv"]
+    fig, axes = plt.subplots(1, 3, figsize=(9.8, 3.0))
+    # (a) tier-1 firm: exact private payoff and Monte Carlo estimate
+    ax = axes[0]
+    uu = np.linspace(0, 0.12, 241)
+    phi = c["psi"] * c["P_d"] * c["S_T"] * np.maximum(0, c["margin"] - uu) / c["width"]
+    pay = -(phi + uu ** 2 / (2 * c["beta_c"]))
+    ax.plot(uu, pay, "-", color=C2, lw=1.4, label="closed form (exact)")
+    g = np.array(q6e["tier1"]["grid"]); pmc = np.array(q6e["tier1"]["payoff"])
+    keep = g <= 0.12
+    ax.plot(g[keep], pmc[keep], "o", color=C1, ms=3.5,
+            label="Monte Carlo, one firm (100 runs)")
+    ax.axvline(u_priv, color="gray", lw=0.8, ls=":")
+    ax.annotate(rf"$u^{{\mathrm{{priv}}}}={u_priv:.3f}$", (u_priv + 0.004, pay[0] - 2.5),
+                fontsize=7.5, color="gray", va="top")
+    ax.set_xlabel(r"own reserve $u_j$ (tier-1 firm)")
     ax.set_ylabel(r"private payoff $-(\psi\,\mathbb{E}\sum_t f_j + c(u_j))$")
-    ax.set_title("Numerical check of payoff unimodality")
+    ax.set_title("Tier-1 firm: private payoff")
+    ax.legend(fontsize=7, frameon=False, loc="lower left")
+    # (b) planner objective versus tier-1 reserve
+    ax = axes[1]
+    cur = np.array(q6c["planner_curve"])
+    ax.plot(cur[:, 0], cur[:, 2], "-o", color=C3, ms=3, label="social cost")
+    ax.plot(cur[:, 0], cur[:, 1], "--", color="gray", lw=1.0,
+            label="expected total failures")
+    k = int(np.argmin(cur[:, 2]))
+    ax.axvline(cur[k, 0], color="gray", lw=0.8, ls=":")
+    ax.annotate(rf"$u^{{\mathrm{{sp}}}}_1={cur[k,0]:.3f}$", (cur[k, 0] + 0.004, cur[k, 2] + 40),
+                fontsize=7.5, color="gray")
+    ax.set_xlabel(r"tier-1 reserve $u_1$ (planner; other tiers at zero)")
+    ax.set_ylabel("node-periods")
+    ax.set_title("Planner's objective")
+    ax.legend(fontsize=7, frameon=False, loc="upper center")
+    # (c) downstream representative firms: own expected failures vs cost
+    ax = axes[2]
+    for key, col, lab in (("tier2", C1, "tier-2 firm"), ("tier3", C2, "tier-3 firm"),
+                          ("tier4", C4, "tier-4 firm")):
+        d = q6e[key]; gg = np.array(d["grid"])
+        own = -(np.array(d["payoff"]) + gg ** 2 / (2 * c["beta_c"]))
+        ax.plot(gg, own, "-o", color=col, ms=3, label=lab)
+    gg = np.linspace(0, 0.30, 121)
+    ax2 = ax.twinx()
+    ax2.plot(gg, gg ** 2 / (2 * c["beta_c"]), ":", color="gray", lw=1.0)
+    ax2.set_ylabel(r"reserve cost $c(u_j)$ (dotted)", color="gray")
+    ax2.tick_params(axis="y", colors="gray")
+    ax.set_xlabel(r"own reserve $u_j$ (others at equilibrium)")
+    ax.set_ylabel(r"own expected failures $\mathbb{E}\sum_t f_j$")
+    ax.set_title("Downstream firms: benefit versus cost")
+    ax.legend(fontsize=7, frameon=False, loc="center left")
+    fig.tight_layout(w_pad=1.2)
     fig.savefig("fig6_quasi.pdf"); plt.close(fig)
 
 

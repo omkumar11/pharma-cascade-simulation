@@ -1,7 +1,7 @@
 # Simulation code — Kumar & Salwekar, *Cascade Seeding, Delay Timescales, and Coupling Artifacts in Tiered Pharmaceutical Supply Networks*
 
 Every number, table and figure in the manuscript regenerates from this
-repository (release v2.2; concept DOI 10.5281/zenodo.21780232).
+repository (release v2.3; concept DOI 10.5281/zenodo.21780232).
 
 ## Layout
 
@@ -11,7 +11,8 @@ repository (release v2.2; concept DOI 10.5281/zenodo.21780232).
 | `decisions.py` | `simulate_v` = flexible simulator (aggregator `reqmin`/`ces`, damping `binary`/`smooth`, sourcing `indicator`/`logistic`); experiments D1–D6 of **Section 4** (artifact anatomy) -> `results_decisions.json` |
 | `revision_suite.py` | corrected-model suite B1–B13 for **Sections 6–7** (targeting, delay, lambda, rho, tau/alpha/delta, game, R_c Jacobian, topology/size replication, eta/budget, concentration regression, cisplatin back-test, smooth-sourcing robustness) -> `results_v2.json` |
 | `qa_robustness.py` | v2.2 supplementary checks Q1–Q5 (Katz on the 40 topology draws, budget sweep with Katz, the tau x alpha robustness grid = **Table VI**, back-test statistics, peak inventory) -> `results_qa.json` |
-| `figures_v2.py` | Figures 1–6 from the three JSON files (`results_qa.json` adds the Katz line to Fig. 4) |
+| `game_exact.py` | v2.3 check Q6: the **Section 7** game with the tier-1 private problem in closed form (dominant strategy), equilibrium and planner by 100-run iterated best response, unimodality of downstream private payoffs -> `results_game.json` |
+| `figures_v2.py` | Figures 1–6 from the four JSON files (`results_qa.json` adds the Katz line to Fig. 4; `results_game.json` gives the three-panel Fig. 6) |
 | `robustness.py`, `new_experiments.py` | embedding/curvature machinery and PA topology builder used by the suite |
 | `experiments.py`, `figures.py`, `results_e124.json` | **v1 pipeline (obsolete)** — kept only so the preliminary version's numbers remain reproducible |
 
@@ -26,16 +27,29 @@ pip install -r requirements.txt      # numpy, scipy, matplotlib
 python3 decisions.py                 # Section 4  (~5 min)  -> results_decisions.json
 python3 revision_suite.py            # Sections 6–7 (~35 min) -> results_v2.json
 python3 qa_robustness.py             # v2.2 checks (~15 min) -> results_qa.json
+python3 game_exact.py                # v2.3 game   (~10 min) -> results_game.json
 python3 figures_v2.py                # fig1_transition ... fig6_quasi (.pdf)
 ```
 
 `python3 revision_suite.py --only-b13` re-runs only the smooth-sourcing
 robustness block and merges it into an existing `results_v2.json`.
 
-Python 3.13, NumPy 2.x, SciPy 1.x; ~40 min total on an Apple M-series laptop.
+Python 3.13, NumPy 2.x, SciPy 1.x; ~65 min total on an Apple M-series laptop.
 
 ## Changelog
 
+* v2.3 — IEEE Access submission. New `game_exact.py` / `results_game.json`:
+  the Section 7 game recomputed with the tier-1 private problem solved in
+  closed form (a source firm's failures depend only on its own shock and
+  reserve, so its reserve choice is a dominant strategy) and with 100
+  common-random-number runs for every simulated evaluation (the v2.x
+  `b6_externality` used 10 inner and 30 evaluation runs, and its tier-1
+  equilibrium reserve of 0.02 was a Monte Carlo artifact: the exact private
+  optimum is 0.008). `figures_v2.py`: Fig. 6 becomes three panels (tier-1
+  closed form vs Monte Carlo; planner's objective; downstream private
+  payoffs) and embeds figure text as TrueType (Type 42) rather than Type 3
+  fonts, as IEEE requires (Figs. 1-6 regenerated, content unchanged). No
+  change to any other result.
 * v2.2 — IEEE Access revision. New `qa_robustness.py` / `results_qa.json`: Katz
   centrality added to the 40-draw topology replication and to the budget sweep
   (Fig. 4, right); the tau x alpha robustness grid of Table VI (lambda sweep,
