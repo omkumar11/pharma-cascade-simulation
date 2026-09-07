@@ -7,7 +7,7 @@ authors:
   - family-names: Salwekar
     given-names: Ishaan
 year: 2026
-version: "2.1"
+version: "2.2"
 repository-code: "https://github.com/omkumar11/pharma-cascade-simulation"
 doi: 10.5281/zenodo.21780232
 license: MIT

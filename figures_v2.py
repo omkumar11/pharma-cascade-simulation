@@ -13,6 +13,10 @@ plt.rcParams.update({"font.size": 9, "axes.titlesize": 10, "axes.labelsize": 9,
                      "figure.dpi": 150, "savefig.bbox": "tight"})
 DEC = json.load(open("results_decisions.json"))
 V2 = json.load(open("results_v2.json"))
+try:                       # v2.2 additions (qa_robustness.py); optional
+    QA = json.load(open("results_qa.json"))
+except FileNotFoundError:
+    QA = None
 C1, C2, C3, C4 = "#B44E2C", "#2C6FB4", "#5E8C61", "#8C5E8C"
 
 
@@ -90,6 +94,9 @@ def fig3_lambda():
     ax.set_title("Continuous-coupling baseline (95% CI)")
     d3 = DEC["d3"]
     ax2.plot(d3["lams"], d3["failures"], "-o", color=C1, ms=4)
+    # binding-switch interval lambda* = ln(x_h/x_f) for failed sources,
+    # x_f = 1 - eps in (0.1, 0.3): [ln(1/0.3), ln(1/0.1)] = [1.20, 2.30]
+    ax2.axvspan(np.log(1 / 0.3), np.log(1 / 0.1), color="gray", alpha=0.15, lw=0)
     ax2.axvline(2.0, color="gray", lw=0.8, ls=":")
     ax2.set_xlabel(r"$\lambda$"); ax2.set_ylabel("total failures")
     ax2.set_title("Indicator-coupled variant: artifactual\ninterior optimum "
@@ -127,6 +134,10 @@ def fig4_targeting():
                       for b in Bs], "-o", ms=3.5, color=c,
                  label={"C": r"$\chi(j)$", "tier1": "tier-1 uniform",
                         "uniform": "uniform"}[nm])
+    if QA is not None:  # v2.2: Katz on the budget sweep (qa_robustness.py, Q2)
+        q2 = QA["q2"]
+        ax2.plot(Bs, [q2[str(b)]["reduction"]["katz"] for b in Bs], "-o",
+                 ms=3.5, color=C3, label="Katz")
     ax2.set_xscale("log", base=2)
     ax2.set_xlabel("budget B"); ax2.set_ylabel("failure reduction (%)")
     ax2.set_title("Budget sweep"); ax2.legend(fontsize=7.5, frameon=False)
