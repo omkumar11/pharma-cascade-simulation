@@ -1,13 +1,13 @@
 cff-version: 1.2.0
 message: "If you use this code, please cite the accompanying paper."
-title: "Simulation code: Cascade Seeding, Delay Timescales, and Coupling Artifacts in Tiered Pharmaceutical Supply Networks"
+title: "Simulation code: Threshold Gating, Delay Equivariance, and Coupling Artifacts in Cascading Failures of Tiered Production Networks"
 authors:
   - family-names: Kumar
     given-names: Om
   - family-names: Salwekar
     given-names: Ishaan
 year: 2026
-version: "2.3"
+version: "2.4"
 repository-code: "https://github.com/omkumar11/pharma-cascade-simulation"
 doi: 10.5281/zenodo.21780232
 license: MIT

@@ -1,5 +1,5 @@
 {
- "title": "Simulation code: Cascade Seeding, Delay Timescales, and Coupling Artifacts in Tiered Pharmaceutical Supply Networks",
+ "title": "Simulation code: Threshold Gating, Delay Equivariance, and Coupling Artifacts in Cascading Failures of Tiered Production Networks",
  "upload_type": "software",
  "creators": [
   {
@@ -18,5 +18,5 @@
   "production networks",
   "drug shortages"
  ],
- "version": "2.3"
+ "version": "2.4"
 }
